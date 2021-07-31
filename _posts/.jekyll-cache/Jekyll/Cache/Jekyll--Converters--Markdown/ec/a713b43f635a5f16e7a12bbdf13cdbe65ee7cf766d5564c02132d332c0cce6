@@ -1,0 +1,16 @@
+I"�<h1 id="build-site">Build Site</h1>
+
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nb">cd</span> /path/to/site  
+<span class="nb">echo</span> <span class="s2">"gem </span><span class="se">\"</span><span class="s2">Jekyll</span><span class="se">\"</span><span class="s2">"</span> <span class="o">&gt;&gt;</span> Gemfile   
+<span class="nb">echo</span> <span class="s2">"gem </span><span class="se">\"</span><span class="s2">Webrick</span><span class="se">\"</span><span class="s2">"</span> <span class="o">&gt;&gt;</span> Gemfile  
+bundle <span class="nb">install</span>   </code></pre></figure>
+
+<ul>
+  <li>Update _config.yaml with “destination: ../targetsite/”<br />
+Build site files and serve via:</li>
+</ul>
+
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash">bundle <span class="nb">exec </span>jekyll serve </code></pre></figure>
+
+<p>Navigate to http://localhost:4000</p>
+:ET

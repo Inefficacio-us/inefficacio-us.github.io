@@ -1,0 +1,188 @@
+I"aW<p>Amazon S3 or Amazon Simple Storage Service is a service offered by Amazon Web Services that provides object storage through a web service interface. Amazon S3 uses the same scalable storage infrastructure that Amazon.com uses to run its global e-commerce network.</p>
+
+<h4 id="aws-s3-configuration">AWS S3 Configuration</h4>
+
+<blockquote>
+  <p>Before you can begin using Boto 3 (for AWS S3), you should set up authentication credentials.
+in this case, AWS S3 Only for upload files or images purpose.</p>
+</blockquote>
+
+<p><strong>a. Using awscli <em>(recommended)</em></strong></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ sudo apt-get install -y awscli
+$ aws configure set aws_access_key_id 
+$ aws configure set aws_secret_access_key 
+$ aws configure set region   # e.g: ap-southeast-1
+</code></pre></div></div>
+
+<p><strong>b. Manual Configuration</strong></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ mkdir ~/.aws &amp;&amp; nano ~/.aws/credentials
+</code></pre></div></div>
+
+<p>and then fill:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[default]
+aws_access_key_id = xxxx
+aws_secret_access_key = xxxx
+</code></pre></div></div>
+
+<p>You may also want to set a default region of your server. The <code class="language-plaintext highlighter-rouge">ap-southeast-1</code> depend with your server region.
+This can be done in the configuration file. By default, its location is at <code class="language-plaintext highlighter-rouge">~/.aws/config</code>:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[default]
+region=ap-southeast-1
+</code></pre></div></div>
+
+<hr />
+
+<p>This example below is one of way “how to integrate” the AmazonS3 with Django <em>(with django-rest-framework)</em>.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ pip install requests boto3
+</code></pre></div></div>
+
+<p>in your <code class="language-plaintext highlighter-rouge">settings.py</code></p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">AWS_S3_BUCKET_NAME</span> <span class="o">=</span> <span class="s">'xxx-xxx-xxx'</span>
+<span class="n">MAX_IMAGE_UPLOAD_SIZE</span> <span class="o">=</span> <span class="mi">5242880</span>
+</code></pre></div></div>
+
+<p>then, in your <code class="language-plaintext highlighter-rouge">utils/uploader.py</code></p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">boto3</span>
+<span class="kn">import</span> <span class="nn">urllib3</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">import</span> <span class="nn">mimetypes</span>
+
+<span class="kn">from</span> <span class="nn">django.conf</span> <span class="kn">import</span> <span class="n">settings</span>
+<span class="kn">from</span> <span class="nn">django.core.files.base</span> <span class="kn">import</span> <span class="n">ContentFile</span>
+<span class="kn">from</span> <span class="nn">botocore.exceptions</span> <span class="kn">import</span> <span class="n">ClientError</span>
+
+
+<span class="k">class</span> <span class="nc">AmazonS3</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">path_format</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">.</span><span class="n">datetime</span><span class="p">.</span><span class="n">now</span><span class="p">().</span><span class="n">strftime</span><span class="p">(</span><span class="s">'%Y/%m/%d'</span><span class="p">)</span>
+    <span class="n">bucket_name</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="s">'AWS_S3_BUCKET_NAME'</span><span class="p">)</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">boto3</span><span class="p">.</span><span class="n">client</span><span class="p">(</span><span class="s">'s3'</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_object_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_url</span><span class="p">):</span>
+        <span class="s">"""
+        function to get the file object name
+        or file path url by `file_url`.
+
+        :param `file_url` is string uploaded url.
+                eg: 'https://s3.ap-southeast-1.amazonaws.com/assets.dev.doain/files/2019/08/13/no-image.svg'
+
+        :return string object_name.
+                eg: 'files/2019/07/22/logo.png'
+        """</span>
+        <span class="k">return</span> <span class="n">urllib3</span><span class="p">.</span><span class="n">util</span><span class="p">.</span><span class="n">parse_url</span><span class="p">(</span><span class="n">file_url</span><span class="p">).</span><span class="n">path</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+    <span class="k">def</span> <span class="nf">get_uploaded_url</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_name</span><span class="p">):</span>
+        <span class="s">"""
+        function to get the uploaded url.
+
+        :param `object_name` is string object name.
+                eg: 'files/2019/07/22/logo.png'
+
+        :return string of uploaded file/images url.
+                eg: 'https://s3.ap-southeast-1.amazonaws.com/assets.dev.doain/files/2019/08/13/no-image.svg'
+        """</span>
+        <span class="n">location</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">client</span><span class="p">.</span><span class="n">get_bucket_location</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="bp">self</span><span class="p">.</span><span class="n">bucket_name</span><span class="p">)[</span><span class="s">'LocationConstraint'</span><span class="p">]</span>
+        <span class="k">return</span> <span class="s">'https://s3.%s.amazonaws.com/%s/%s'</span> <span class="o">%</span> <span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">bucket_name</span><span class="p">,</span> <span class="n">object_name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">upload_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="s">'files'</span><span class="p">):</span>
+        <span class="s">"""
+        function to upload the file or image into aws s3.
+
+        :param `file_name` is file name original path source.
+        :param `folder` is target folder in aws s3.
+
+        :return `url` eg: 'https://s3.ap-southeast-1.amazonaws.com/assets.dev.doain/files/2019/08/13/no-image.svg'
+        """</span>
+        <span class="n">content_type</span> <span class="o">=</span> <span class="n">mimetypes</span><span class="p">.</span><span class="n">guess_type</span><span class="p">(</span><span class="n">file_name</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">object_name</span> <span class="o">=</span> <span class="n">os</span><span class="p">.</span><span class="n">path</span><span class="p">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">path_format</span><span class="p">,</span> <span class="n">file_name</span><span class="p">.</span><span class="n">split</span><span class="p">(</span><span class="s">'/'</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">client</span><span class="p">.</span><span class="n">upload_file</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">bucket_name</span><span class="p">,</span> <span class="n">object_name</span><span class="p">,</span>
+                                      <span class="n">ExtraArgs</span><span class="o">=</span><span class="p">{</span><span class="s">'ACL'</span><span class="p">:</span> <span class="s">'public-read'</span><span class="p">,</span>
+                                                 <span class="s">'ContentDisposition'</span><span class="p">:</span> <span class="s">'inline'</span><span class="p">,</span>
+                                                 <span class="s">'ContentType'</span><span class="p">:</span> <span class="n">content_type</span><span class="p">})</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">.</span><span class="n">get_uploaded_url</span><span class="p">(</span><span class="n">object_name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">upload_fileobj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_obj</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="s">'files'</span><span class="p">):</span>
+        <span class="s">"""
+        function to upload the file object or images into aws s3.
+
+        :param `field_obj` is file object, eg: request.FILES['image']
+        :param `folder` is target folder in aws s3.
+
+        :return `url` eg: 'https://s3.ap-southeast-1.amazonaws.com/assets.dev.doain/files/2019/08/13/no-image.svg'
+        """</span>
+        <span class="n">object_name</span> <span class="o">=</span> <span class="n">os</span><span class="p">.</span><span class="n">path</span><span class="p">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">path_format</span><span class="p">,</span> <span class="n">file_obj</span><span class="p">.</span><span class="n">name</span><span class="p">.</span><span class="n">split</span><span class="p">(</span><span class="s">'/'</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">file_data</span> <span class="o">=</span> <span class="n">ContentFile</span><span class="p">(</span><span class="n">file_obj</span><span class="p">.</span><span class="n">read</span><span class="p">())</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">client</span><span class="p">.</span><span class="n">upload_fileobj</span><span class="p">(</span><span class="n">file_data</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">bucket_name</span><span class="p">,</span> <span class="n">object_name</span><span class="p">,</span>
+                                   <span class="n">ExtraArgs</span><span class="o">=</span><span class="p">{</span><span class="s">'ACL'</span><span class="p">:</span> <span class="s">'public-read'</span><span class="p">,</span>
+                                              <span class="s">'ContentDisposition'</span><span class="p">:</span> <span class="s">'inline'</span><span class="p">,</span>
+                                              <span class="s">'ContentType'</span><span class="p">:</span> <span class="n">file_obj</span><span class="p">.</span><span class="n">content_type</span><span class="p">})</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">.</span><span class="n">get_uploaded_url</span><span class="p">(</span><span class="n">object_name</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>and then in your <code class="language-plaintext highlighter-rouge">views.py</code></p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">django.conf</span> <span class="kn">import</span> <span class="n">settings</span>
+<span class="kn">from</span> <span class="nn">django.utils.translation</span> <span class="kn">import</span> <span class="n">ugettext_lazy</span> <span class="k">as</span> <span class="n">_</span>
+
+<span class="kn">from</span> <span class="nn">rest_framework</span> <span class="kn">import</span> <span class="n">status</span>
+<span class="kn">from</span> <span class="nn">rest_framework.views</span> <span class="kn">import</span> <span class="n">APIView</span>
+<span class="kn">from</span> <span class="nn">rest_framework.response</span> <span class="kn">import</span> <span class="n">Response</span>
+<span class="kn">from</span> <span class="nn">rest_framework.permissions</span> <span class="kn">import</span> <span class="n">AllowAny</span>
+
+<span class="kn">from</span> <span class="nn">yourapp.utils.uploader</span> <span class="kn">import</span> <span class="n">AmazonS3</span>
+
+
+<span class="k">class</span> <span class="nc">UploadImageView</span><span class="p">(</span><span class="n">APIView</span><span class="p">):</span>
+    <span class="s">"""
+    this "Upload Image" view used to handle image uploader,
+    and save into AmazonS3 storage.
+    """</span>
+    <span class="n">permission_classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">AllowAny</span><span class="p">,]</span>
+    <span class="n">image_types</span> <span class="o">=</span> <span class="p">[</span><span class="s">'image/png'</span><span class="p">,</span> <span class="s">'image/jpg'</span><span class="p">,</span> <span class="s">'image/jpeg'</span><span class="p">,</span> <span class="s">'image/pjpeg'</span><span class="p">,</span>
+                   <span class="s">'image/gif'</span><span class="p">,</span> <span class="s">'image/vnd.microsoft.icon'</span><span class="p">,</span> <span class="s">'image/x-icon'</span><span class="p">]</span>
+    <span class="n">max_size</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="s">'MAX_IMAGE_UPLOAD_SIZE'</span><span class="p">,</span> <span class="mi">5242880</span><span class="p">)</span>
+    <span class="n">s3</span> <span class="o">=</span> <span class="n">AmazonS3</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">post</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">folder</span> <span class="o">=</span> <span class="n">request</span><span class="p">.</span><span class="n">POST</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">'folder'</span><span class="p">,</span> <span class="s">'images'</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s">'image'</span> <span class="ow">in</span> <span class="n">request</span><span class="p">.</span><span class="n">FILES</span><span class="p">:</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="n">request</span><span class="p">.</span><span class="n">FILES</span><span class="p">[</span><span class="s">'image'</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">image</span><span class="p">.</span><span class="n">content_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">.</span><span class="n">image_types</span><span class="p">:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="p">{</span><span class="s">'status'</span><span class="p">:</span> <span class="n">status</span><span class="p">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+                            <span class="s">'message'</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s">'Bad image format!'</span><span class="p">)}</span>
+                <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">response</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">'status'</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">image</span><span class="p">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="p">.</span><span class="n">max_size</span><span class="p">:</span>
+                <span class="n">max_size</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">max_size</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">)</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="p">{</span><span class="s">'status'</span><span class="p">:</span> <span class="n">status</span><span class="p">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+                            <span class="s">'message'</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s">'Maximum image size %(max_size)s MB.'</span><span class="p">)</span> <span class="o">%</span> <span class="p">{</span><span class="s">'max_size'</span><span class="p">:</span> <span class="n">max_size</span><span class="p">}}</span>
+                <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">response</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">'status'</span><span class="p">))</span>
+
+            <span class="n">image_url</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">s3</span><span class="p">.</span><span class="n">upload_fileobj</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="n">folder</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">image_url</span><span class="p">:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="p">{</span><span class="s">'status'</span><span class="p">:</span> <span class="n">status</span><span class="p">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+                            <span class="s">'message'</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s">'Failed to upload the image.'</span><span class="p">)}</span>
+                <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">response</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">'status'</span><span class="p">))</span>
+
+            <span class="n">response</span> <span class="o">=</span> <span class="p">{</span><span class="s">'status'</span><span class="p">:</span> <span class="n">status</span><span class="p">.</span><span class="n">HTTP_200_OK</span><span class="p">,</span>
+                        <span class="s">'message'</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s">'Image successfully uploaded.'</span><span class="p">),</span>
+                        <span class="s">'result'</span><span class="p">:</span> <span class="p">{</span>
+                            <span class="s">'image_url'</span><span class="p">:</span> <span class="n">image_url</span><span class="p">,</span>
+                            <span class="s">'image_name'</span><span class="p">:</span> <span class="n">image</span><span class="p">.</span><span class="n">name</span>
+                        <span class="p">}}</span>
+            <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">response</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">'status'</span><span class="p">))</span>
+
+        <span class="n">response</span> <span class="o">=</span> <span class="p">{</span><span class="s">'status'</span><span class="p">:</span> <span class="n">status</span><span class="p">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+                    <span class="s">'message'</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s">'Invalid "image" field.'</span><span class="p">)}</span>
+        <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">response</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">'status'</span><span class="p">))</span>
+</code></pre></div></div>
+:ET
