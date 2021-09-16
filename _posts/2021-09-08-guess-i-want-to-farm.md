@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "I guess I want to be a Farmer""
+title:  "I guess I want to be a Farmer"
 date:   2021-07-30 20:18:23 +0700
 categories: [meta]
 ---
