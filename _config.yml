@@ -2,7 +2,7 @@ title: Inefficacious&#58; adj. Lacking the power to produce a desired effect.
 description: A series of angry letters to myself
 author: Inefficacious
 github: https://github.com/inefficacio-us
-about: Actually just a stack of cats wearing a trenchcoat
+about: # Actually just a stack of cats wearing a trenchcoat
   # disqus_shortname: supernotreal
   # google_analytics: UA-XXXXXXXX-Y
 plugins: [jekyll-paginate]
@@ -15,21 +15,21 @@ collections:
     output: true
     permalink: /project/:path/
 
-social:
-    - icon: fa-facebook
-      link: "#"
-    - icon: fa-twitter
-      link: "#"
-    - icon: fa-linkedin
-      link: "#"
-    - icon: fa-stack-exchange
-      link: "#"
-    - icon: fa-github
-      link: "https://github.com/#"
+# social:
+#     - icon: fa-facebook
+#       link: "#"
+#     - icon: fa-twitter
+#       link: "#"
+#     - icon: fa-linkedin
+#       link: "#"
+#     - icon: fa-stack-exchange
+#       link: "#"
+#     - icon: fa-github
+#       link: "https://github.com/#"
 
-share:
-  twitter_username: github.io
-  fb_appid: 9999999999999999
+# share:
+#   twitter_username: github.io
+#   fb_appid: 9999999999999999
 
 urls:
     - text: About Me
