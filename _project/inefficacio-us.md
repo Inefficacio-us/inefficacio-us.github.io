@@ -30,7 +30,7 @@ Then you can fuck around with methodology.
 # The Content
 ### The blog:
 Stupid shit I think about, as I think about it. Things I find, as I find them.
-In-depth dives to particularly noteworthy topics or difficult-to-grasp concepts.  
+Deep dives into particularly noteworthy topics or difficult-to-grasp concepts.  
 
 ### The Projects:
 Probably just cleaned-up working notes, reference material, design concepts, and

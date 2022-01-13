@@ -36,8 +36,8 @@ urls:
       url: /about/
     - text: My Projects
       url: /projects/
-    - text: XML Feed
-      url: /feed.xml
+#   - text: XML Feed
+#     url: /feed.xml
 
 url: "https://inefficacio-us.github.io"
 baseurl: ""
