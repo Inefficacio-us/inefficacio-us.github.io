@@ -15,6 +15,9 @@ This one will be difficult.
 
 
 # 1. The Course
+Hot dog I've got it. PEN-200/PEN-210 are available to me as of today, Feb. 21.  
+
+
 
 # 2. The Lab
 The lab contains over 70 machines. These should be approached not as individual

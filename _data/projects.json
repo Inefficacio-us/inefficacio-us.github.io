@@ -11,8 +11,8 @@
 		"slug": "OSCP",
 		"name": "OSCP",
 		"image": "offsec.svg",
-		"url": "https://www.offensive-security.com",
-		"date": "Feb 2020",
+		// "url": "https://www.offensive-security.com",
+		"date": "Jan 2022",
 		"tags": ["OSCP"]
 	},
 ]
